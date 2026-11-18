@@ -1,0 +1,38 @@
+name: Deploy no PythonAnywhere
+
+# Todo commit/merge na main roda os testes e, se passarem,
+# avisa o PythonAnywhere para fazer o git pull e recarregar a aplicação.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip poetry
+      - run: poetry install --no-root
+      - run: poetry run pytest -q
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_URL: https://pedrobada.pythonanywhere.com/update_server/
+    steps:
+      - name: Dispara o deploy no PythonAnywhere
+        run: |
+          curl --fail --show-error -X POST "$DEPLOY_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Event: push" \
+            -d '{"ref": "refs/heads/main"}'
+
+      - name: Confere se a API está no ar
+        run: |
+          sleep 20
+          curl --fail --show-error "${DEPLOY_URL%update_server/}hello/"
