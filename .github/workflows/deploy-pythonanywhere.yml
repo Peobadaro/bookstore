@@ -27,7 +27,9 @@ jobs:
     steps:
       - name: Dispara o deploy no PythonAnywhere
         run: |
-          curl --fail --show-error -X POST "$DEPLOY_URL" \
+          curl --fail --show-error --ipv4 --connect-timeout 20 --max-time 60 \
+            --retry 5 --retry-delay 10 --retry-all-errors \
+            -X POST "$DEPLOY_URL" \
             -H "Content-Type: application/json" \
             -H "X-GitHub-Event: push" \
             -d '{"ref": "refs/heads/main"}'
@@ -35,4 +37,5 @@ jobs:
       - name: Confere se a API está no ar
         run: |
           sleep 20
-          curl --fail --show-error "${DEPLOY_URL%update_server/}hello/"
+          curl --fail --show-error --ipv4 --retry 3 --retry-all-errors \
+            "${DEPLOY_URL%update_server/}hello/"
